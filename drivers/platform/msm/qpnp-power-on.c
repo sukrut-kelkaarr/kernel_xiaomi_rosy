@@ -256,6 +256,7 @@ static const char * const qpnp_pon_reason[] = {
 	[7] = "Triggered from KPD (power key press)",
 };
 
+static struct qpnp_pon *fake_power_pon;
 #define POFF_REASON_FAULT_OFFSET	16
 #define POFF_REASON_S3_RESET_OFFSET	32
 static const char * const qpnp_poff_reason[] = {
@@ -1716,6 +1717,7 @@ static int qpnp_pon_config_init(struct qpnp_pon *pon)
 		}
 
 		rc = qpnp_pon_request_irqs(pon, cfg);
+		fake_power_pon = pon;
 		if (rc) {
 			dev_err(&pon->spmi->dev, "Unable to request-irq's\n");
 			goto unreg_input_dev;
@@ -2152,6 +2154,8 @@ static int qpnp_pon_probe(struct spmi_device *spmi)
 	u8 s3_src_reg;
 	unsigned long flags;
 
+	printk("heming add qpnp_pon_probe\n");
+
 	pon = devm_kzalloc(&spmi->dev, sizeof(struct qpnp_pon),
 							GFP_KERNEL);
 	if (!pon) {
@@ -2521,6 +2525,10 @@ static int qpnp_pon_probe(struct spmi_device *spmi)
 					"qcom,store-hard-reset-reason");
 
 	qpnp_pon_debugfs_init(spmi);
+
+	probe_board_and_set();
+	printk("heming add qpnp_pon_probe end\n");
+
 	return 0;
 }
 

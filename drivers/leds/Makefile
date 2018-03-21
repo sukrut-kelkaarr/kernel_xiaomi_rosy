@@ -69,5 +69,4 @@ obj-$(CONFIG_LEDS_MSM_GPIO_FLASH)	+= leds-msm-gpio-flash.o
 obj-$(CONFIG_LEDS_DAC124S085)		+= leds-dac124s085.o
 obj-y				+=leds-msm-gpio-flash.o
 
-# LED Triggers
 obj-$(CONFIG_LEDS_TRIGGERS)		+= trigger/
