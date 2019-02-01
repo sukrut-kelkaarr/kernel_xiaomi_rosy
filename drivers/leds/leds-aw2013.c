@@ -1,21 +1,3 @@
-<<<<<<< HEAD
-/*
- * Copyright (c) 2015, The Linux Foundation. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- */
-
-#include <linux/delay.h>
-=======
->>>>>>> 7f73d88... Kernel: Xiaomi kernel changes for Redmi 5 (Rosy)
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/miscdevice.h>
@@ -594,26 +576,12 @@ static int create_aw2013_led(const struct aw2013_led *template,
 
 	ret = led_classdev_register(parent, &led_dat->cdev);
 
-<<<<<<< HEAD
-static int aw_2013_check_chipid(struct aw2013_led *led)
-{
-	u8 val;
-
-	aw2013_write(led, AW_REG_RESET, AW_LED_RESET_MASK);
-	usleep(AW_LED_RESET_DELAY);
-	aw2013_read(led, AW_REG_RESET, &val);
-	if (val == AW2013_CHIPID)
-		return 0;
-	else
-		return -EINVAL;
-=======
 	device_create_file(led_dat->cdev.dev, &dev_attr_blink);
 
 	if (ret < 0)
 		return ret;
 
 	return 0;
->>>>>>> 7f73d88... Kernel: Xiaomi kernel changes for Redmi 5 (Rosy)
 }
 
 static void delete_aw2013_led(struct aw2013_led_data *led)
@@ -780,14 +748,9 @@ static void __exit aw2013_led_exit(void)
 subsys_initcall(aw2013_led_init);
 module_exit(aw2013_led_exit);
 
-<<<<<<< HEAD
-MODULE_DESCRIPTION("AWINIC aw2013 LED driver");
-MODULE_LICENSE("GPL v2");
-=======
 MODULE_AUTHOR("ming he <heming@wingtech.com>");
 MODULE_DESCRIPTION("aw2013 driver");
 MODULE_LICENSE("GPL");
 
 
 
->>>>>>> 7f73d88... Kernel: Xiaomi kernel changes for Redmi 5 (Rosy)
