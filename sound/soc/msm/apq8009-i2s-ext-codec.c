@@ -328,7 +328,7 @@ static struct snd_soc_dapm_route wcd9335_audio_paths[] = {
 };
 
 static char const *rx_bit_format_text[] = {"S16_LE", "S24_3LE", "S24_LE",
-								"S32_LE"};
+					"S32_LE"};
 static const char *const mi2s_tx_ch_text[] = {"One", "Two", "Three", "Four"};
 static char const *pri_rx_sample_rate_text[] = {"KHZ_48", "KHZ_96",
 					"KHZ_192", "KHZ_8",
@@ -2992,12 +2992,6 @@ static int apq8009_asoc_machine_probe(struct platform_device *pdev)
 			"qcom,tdm-mic-mute-enable",
 			pdev->dev.of_node->full_name);
 	}
-
-	pdata->wcd_mic_tri_state = of_property_read_bool(pdev->dev.of_node,
-					"qcom,wcd-mic-tristate");
-
-	pr_debug("%s: WCD mic tri state %d", __func__,
-			pdata->wcd_mic_tri_state);
 
 	return 0;
 err:

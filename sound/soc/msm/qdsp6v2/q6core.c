@@ -279,7 +279,7 @@ void ocm_core_open(void)
 					aprv2_core_fn_q, 0xFFFFFFFF, NULL);
 	pr_debug("%s: Open_q %pK\n", __func__, q6core_lcl.core_handle_q);
 	if (q6core_lcl.core_handle_q == NULL)
-		pr_err_ratelimited("%s: Unable to register CORE\n", __func__);
+		pr_err("%s: Unable to register CORE\n", __func__);
 }
 
 struct cal_block_data *cal_utils_get_cal_block_by_key(
@@ -622,12 +622,6 @@ uint32_t core_set_dolby_manufacturer_id(int manufacturer_id)
 	return rc;
 }
 
-/*
- * q6core_is_adsp_ready - get adsp state
- *
- * Return:  true on adsp state is up or false.
- */
-
 bool q6core_is_adsp_ready(void)
 {
 	int rc;
@@ -645,7 +639,7 @@ bool q6core_is_adsp_ready(void)
 	q6core_lcl.bus_bw_resp_received = 0;
 	rc = apr_send_pkt(q6core_lcl.core_handle_q, (uint32_t *)&hdr);
 	if (rc < 0) {
-		pr_err_ratelimited("%s: Get ADSP state APR packet send event %d\n",
+		pr_err("%s: Get ADSP state APR packet send event %d\n",
 			__func__, rc);
 		goto bail;
 	}
@@ -662,7 +656,7 @@ bail:
 	pr_debug("%s: leave, rc %d, adsp ready %d\n", __func__, rc, ret);
 	return ret;
 }
-EXPORT_SYMBOL(q6core_is_adsp_ready);
+
 
 static int q6core_map_memory_regions(phys_addr_t *buf_add, uint32_t mempool_id,
 			uint32_t *bufsz, uint32_t bufcnt, uint32_t *map_handle)

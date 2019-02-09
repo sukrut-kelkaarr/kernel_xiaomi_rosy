@@ -339,4 +339,3 @@ extern void msm8x16_wcd_hph_comp_cb(
 		int (*codec_hph_comp_gpio)(bool enable),
 		struct snd_soc_codec *codec);
 #endif
-
