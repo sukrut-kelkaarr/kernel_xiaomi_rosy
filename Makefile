@@ -408,6 +408,12 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -std=gnu89
 
+KBUILD_CFLAGS += -w
+# if all errors are to be suppressed
+
+KBUILD_CFLAGS += -Wno-error=unused-but-set-variable
+# if that specific error is to be suppressed.
+
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
