@@ -121,9 +121,16 @@ static void port_subs_info_init(struct snd_seq_port_subs_info *grp)
 	grp->close = NULL;
 }
 
+<<<<<<< HEAD
 /* create a port, port number is returned (-1 on failure);
 * the caller needs to unref the port via snd_seq_port_unlock() appropriately
 */
+=======
+
+/* create a port, port number is returned (-1 on failure);
+ * the caller needs to unref the port via snd_seq_port_unlock() appropriately
+ */
+>>>>>>> cf4e6d7df9a8e6a6695a5c336eb29ba83bb8c1da
 struct snd_seq_client_port *snd_seq_create_port(struct snd_seq_client *client,
 						int port)
 {
