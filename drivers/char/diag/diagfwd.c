@@ -440,7 +440,7 @@ void diag_update_pkt_buffer(unsigned char *buf, uint32_t len, int type)
 	}
 
 	mutex_lock(&driver->diagchar_mutex);
-	if (CHK_OVERFLOW(ptr, ptr, ptr + max_len, len)) {
+	if (CHK_OVERFLOW(driver->apps_req_buf, driver->dci_pkt_buf, ptr + max_len, len)) {
 		memcpy(ptr, temp , len);
 		*length = len;
 		*in_busy = 1;
