@@ -47,12 +47,12 @@ unsigned char aw87319_hw_off(void);
 unsigned char aw87319_sw_on(void);
 unsigned char aw87319_sw_off(void);
 
-static ssize_t aw87319_get_reg(struct device *cd, struct device_attribute *attr, char *buf);
-static ssize_t aw87319_set_reg(struct device *cd, struct device_attribute *attr, const char *buf, size_t len);
-static ssize_t aw87319_set_swen(struct device *cd, struct device_attribute *attr, const char *buf, size_t len);
-static ssize_t aw87319_get_swen(struct device *cd, struct device_attribute *attr, char *buf);
-static ssize_t aw87319_set_hwen(struct device *cd, struct device_attribute *attr, const char *buf, size_t len);
-static ssize_t aw87319_get_hwen(struct device *cd, struct device_attribute *attr, char *buf);
+static ssize_t aw87319_get_reg(struct device* cd, struct device_attribute *attr, char* buf);
+static ssize_t aw87319_set_reg(struct device* cd, struct device_attribute *attr, const char* buf, size_t len);
+static ssize_t aw87319_set_swen(struct device* cd, struct device_attribute *attr, const char* buf, size_t len);
+static ssize_t aw87319_get_swen(struct device* cd, struct device_attribute *attr, char* buf);
+static ssize_t aw87319_set_hwen(struct device* cd, struct device_attribute *attr, const char* buf, size_t len);
+static ssize_t aw87319_get_hwen(struct device* cd, struct device_attribute *attr, char* buf);
 
 static DEVICE_ATTR(reg, 0660, aw87319_get_reg,  aw87319_set_reg);
 static DEVICE_ATTR(swen, 0660, aw87319_get_swen,  aw87319_set_swen);
@@ -69,7 +69,7 @@ struct pinctrl_state *aw87319_rst_low = NULL;
 
 
 
-char Spk_Pa_Flag[] = " ";
+char Spk_Pa_Flag[]=" ";
 
 static void aw87319_pa_pwron(void)
 {
@@ -108,16 +108,17 @@ unsigned char I2C_write_reg(unsigned char addr, unsigned char reg_data)
 	wdbuf[0] = addr;
 	wdbuf[1] = reg_data;
 
-	if (NULL == aw87319_pa_client) {
+	if(NULL == aw87319_pa_client)
+	{
 		pr_err("msg %s aw87319_pa_client is NULL\n", __func__);
-		return -EPERM;
+		return -1;
 	}
 
 	ret = i2c_transfer(aw87319_pa_client->adapter, msgs, 1);
 	if (ret < 0)
 		pr_err("msg %s i2c read error: %d\n", __func__, ret);
 
-	return ret;
+    return ret;
 }
 
 unsigned char I2C_read_reg(unsigned char addr)
@@ -142,16 +143,17 @@ unsigned char I2C_read_reg(unsigned char addr)
 
 	rdbuf[0] = addr;
 
-	if (NULL == aw87319_pa_client) {
+	if(NULL == aw87319_pa_client)
+	{
 		pr_err("msg %s aw87319_pa_client is NULL\n", __func__);
-		return -EPERM;
+		return -1;
 	}
 
 	ret = i2c_transfer(aw87319_pa_client->adapter, msgs, 2);
 	if (ret < 0)
 		pr_err("msg %s i2c read error: %d\n", __func__, ret);
 
-	return rdbuf[0];
+    return rdbuf[0];
 }
 
 
@@ -242,12 +244,13 @@ unsigned char aw87319_hw_off(void)
 
 
 
-static ssize_t aw87319_get_reg(struct device *cd, struct device_attribute *attr, char *buf)
+static ssize_t aw87319_get_reg(struct device* cd, struct device_attribute *attr, char* buf)
 {
 	unsigned char reg_val;
 	ssize_t len = 0;
 	u8 i;
-	for (i = 0; i < 0x10; i++) {
+	for(i=0;i<0x10;i++)
+	{
 		reg_val = I2C_read_reg(i);
 		len += snprintf(buf+len, PAGE_SIZE-len, "reg%2X = 0x%2X, ", i, reg_val);
 	}
@@ -255,16 +258,17 @@ static ssize_t aw87319_get_reg(struct device *cd, struct device_attribute *attr,
 	return len;
 }
 
-static ssize_t aw87319_set_reg(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
+static ssize_t aw87319_set_reg(struct device* cd, struct device_attribute *attr, const char* buf, size_t len)
 {
 	unsigned int databuf[2];
-	if (2 == sscanf(buf, "%x %x", &databuf[0],  &databuf[1])) {
+	if(2 == sscanf(buf, "%x %x", &databuf[0], &databuf[1]))
+	{
 		I2C_write_reg(databuf[0], databuf[1]);
 	}
 	return len;
 }
 
-static ssize_t aw87319_get_swen(struct device *cd, struct device_attribute *attr, char *buf)
+static ssize_t aw87319_get_swen(struct device* cd, struct device_attribute *attr, char* buf)
 {
 	ssize_t len = 0;
 	len += snprintf(buf+len, PAGE_SIZE-len, "aw87319_sw_on(void)\n");
@@ -277,12 +281,12 @@ static ssize_t aw87319_get_swen(struct device *cd, struct device_attribute *attr
 	return len;
 }
 
-static ssize_t aw87319_set_swen(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
+static ssize_t aw87319_set_swen(struct device* cd, struct device_attribute *attr, const char* buf, size_t len)
 {
 	unsigned int databuf[16];
 
 	sscanf(buf, "%d", &databuf[0]);
-	if (databuf[0] == 0) {
+	if(databuf[0] == 0) {
 		aw87319_sw_off();
 	} else {
 		aw87319_sw_on();
@@ -291,7 +295,7 @@ static ssize_t aw87319_set_swen(struct device *cd, struct device_attribute *attr
 	return len;
 }
 
-static ssize_t aw87319_get_hwen(struct device *cd, struct device_attribute *attr, char *buf)
+static ssize_t aw87319_get_hwen(struct device* cd, struct device_attribute *attr, char* buf)
 {
 	ssize_t len = 0;
 	len += snprintf(buf+len, PAGE_SIZE-len, "aw87319_hw_on(void)\n");
@@ -304,12 +308,12 @@ static ssize_t aw87319_get_hwen(struct device *cd, struct device_attribute *attr
 	return len;
 }
 
-static ssize_t aw87319_set_hwen(struct device *cd, struct device_attribute *attr, const char *buf, size_t len)
+static ssize_t aw87319_set_hwen(struct device* cd, struct device_attribute *attr, const char* buf, size_t len)
 {
 	unsigned int databuf[16];
 
 	sscanf(buf, "%d", &databuf[0]);
-	if (databuf[0] == 0) {
+	if(databuf[0] == 0) {
 		aw87319_hw_off();
 	} else {
 		aw87319_hw_on();
@@ -349,7 +353,8 @@ static int aw87319_i2c_probe(struct i2c_client *client, const struct i2c_device_
 
 
 	aw87319_rst = of_get_named_gpio(client->dev.of_node, "qcom,ext_pa_spk_aw87319_rst", 0);
-	if (aw87319_rst < 0) {
+	if(aw87319_rst < 0)
+	{
 		err = -ENODEV;
 		goto exit_gpio_get_failed;
 	}
@@ -364,17 +369,20 @@ static int aw87319_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	aw87319_hw_on();
 	msleep(10);
 
-	while (cnt > 0) {
+	while(cnt>0)
+	{
 		I2C_write_reg(0x64, 0x2C);
 		reg_value = I2C_read_reg(0x00);
 		printk("AW87319 CHIPID=0x%2x\n", reg_value);
-		if (reg_value == 0x9B) {
+		if(reg_value == 0x9B)
+		{
 			break;
 		}
-		cnt--;
+		cnt --;
 		msleep(10);
 	}
-	if (!cnt) {
+	if(!cnt)
+	{
 		err = -ENODEV;
 		aw87319_hw_off();
 		strncpy(Spk_Pa_Flag, "S88537A12", 9);
@@ -425,8 +433,7 @@ static struct i2c_driver aw87319_i2c_driver = {
 	.id_table	= aw87319_i2c_id,
 };
 
-static int __init aw87319_pa_init(void)
-{
+static int __init aw87319_pa_init(void) {
 	int ret;
 	printk("%s Enter\n", __func__);
 
@@ -438,8 +445,7 @@ static int __init aw87319_pa_init(void)
 	return 0;
 }
 
-static void __exit aw87319_pa_exit(void)
-{
+static void __exit aw87319_pa_exit(void) {
 	printk("%s Enter\n", __func__);
 	i2c_del_driver(&aw87319_i2c_driver);
 }
@@ -451,4 +457,3 @@ module_exit(aw87319_pa_exit);
 MODULE_AUTHOR("<liweilei@awinic.com.cn>");
 MODULE_DESCRIPTION("AWINIC AW87319 PA driver");
 MODULE_LICENSE("GPL");
-

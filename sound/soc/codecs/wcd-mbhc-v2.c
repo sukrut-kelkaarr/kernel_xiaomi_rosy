@@ -70,7 +70,7 @@ enum wcd_mbhc_cs_mb_en_flag {
 
 
 #ifdef CONFIG_C3B_BQ2560X
-static int wt_correct_accessory_type;
+static int wt_correct_accessory_type = false;
 #endif
 
 static void wcd_mbhc_jack_report(struct wcd_mbhc *mbhc,
@@ -882,7 +882,6 @@ static void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 				}
 			}
 		#endif
-
 	} else if (plug_type == MBHC_PLUG_TYPE_HEADSET) {
 		if (mbhc->mbhc_cfg->enable_anc_mic_detect)
 			anc_mic_found = wcd_mbhc_detect_anc_plug_type(mbhc);
@@ -1201,7 +1200,11 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	struct wcd_mbhc *mbhc;
 	struct snd_soc_codec *codec;
 	enum wcd_mbhc_plug_type plug_type = MBHC_PLUG_TYPE_INVALID;
+#ifdef CONFIG_C3B_BQ2560X
+	int iRetryCount;
+#else	
 	unsigned long timeout;
+#endif
 	u16 hs_comp_res, hphl_sch, mic_sch, btn_result;
 	bool wrk_complete = false;
 	int pt_gnd_mic_swap_cnt = 0;
@@ -1227,11 +1230,13 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	 * no need to enabale micbias/pullup here
 	 */
 
+	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
 	wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
 
 
 	/* Enable HW FSM */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
+	msleep(20);
 	/*
 	 * Check for any button press interrupts before starting 3-sec
 	 * loop.
@@ -1276,6 +1281,14 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 		goto correct_plug_type;
 	}
 
+#ifdef CONFIG_C3B_BQ2560X
+	if ((plug_type == MBHC_PLUG_TYPE_HEADSET) &&
+	    (!wcd_swch_level_remove(mbhc))) {
+		WCD_MBHC_RSC_LOCK(mbhc);
+		wcd_mbhc_find_plug_and_report(mbhc, plug_type);
+		WCD_MBHC_RSC_UNLOCK(mbhc);
+	}
+#else
 	if ((plug_type == MBHC_PLUG_TYPE_HEADSET ||
 	     plug_type == MBHC_PLUG_TYPE_HEADPHONE) &&
 	    (!wcd_swch_level_remove(mbhc))) {
@@ -1283,11 +1296,15 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 		wcd_mbhc_find_plug_and_report(mbhc, plug_type);
 		WCD_MBHC_RSC_UNLOCK(mbhc);
 	}
-
+#endif
 correct_plug_type:
 
+#ifdef CONFIG_C3B_BQ2560X
+	for(iRetryCount=0;iRetryCount<5;iRetryCount++){
+#else
 	timeout = jiffies + msecs_to_jiffies(HS_DETECT_PLUG_TIME_MS);
 	while (!time_after(jiffies, timeout)) {
+#endif		
 		if (mbhc->hs_detect_work_stop) {
 			pr_debug("%s: stop requested: %d\n", __func__,
 					mbhc->hs_detect_work_stop);
@@ -1415,7 +1432,6 @@ correct_plug_type:
 		} else {
 			pr_debug("%s: cable might be headset: %d\n", __func__,
 					plug_type);
-
 			printk("%s: hs_comp_res %u, hphl_sch %u, mic_sch %u\n",
 					__func__, hs_comp_res, hphl_sch, mic_sch);
 			if (!(plug_type == MBHC_PLUG_TYPE_GND_MIC_SWAP)) {
@@ -1968,7 +1984,6 @@ static void wcd_btn_lpress_fn(struct work_struct *work)
 	mbhc = container_of(dwork, struct wcd_mbhc, mbhc_btn_dwork);
 
 	WCD_MBHC_REG_READ(WCD_MBHC_BTN_RESULT, btn_result);
-
 	printk("%s: current_plug %d, long button press %x\n", __func__, mbhc->current_plug, mbhc->buttons_pressed);
 	if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET) {
 		pr_debug("%s: Reporting long button press event, btn_result: %d\n",
