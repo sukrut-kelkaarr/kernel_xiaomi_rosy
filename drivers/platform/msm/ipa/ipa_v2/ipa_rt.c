@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1394,43 +1395,40 @@ int ipa2_reset_rt(enum ipa_ip_type ip, bool user_only)
 			 */
 			if (tbl->idx == apps_start_idx && tbl->rule_cnt == 1)
 				continue;
-			if (!user_only ||
-				rule->ipacm_installed) {
-				list_del(&rule->link);
-				if (rule->hdr) {
-					hdr_entry = ipa_id_find(
-						rule->rule.hdr_hdl);
-					if (!hdr_entry ||
-					hdr_entry->cookie != IPA_HDR_COOKIE) {
-						IPAERR_RL(
-						"Header already deleted\n");
-						return -EINVAL;
-					}
-				} else if (rule->proc_ctx) {
-					hdr_proc_entry =
-						ipa_id_find(
-						rule->rule.hdr_proc_ctx_hdl);
-					if (!hdr_proc_entry ||
-						hdr_proc_entry->cookie !=
-							IPA_PROC_HDR_COOKIE) {
-					IPAERR_RL(
-						"Proc entry already deleted\n");
-						return -EINVAL;
-					}
-				}
-				tbl->rule_cnt--;
-				if (rule->hdr)
-					__ipa_release_hdr(rule->hdr->id);
-				else if (rule->proc_ctx)
-					__ipa_release_hdr_proc_ctx(
-						rule->proc_ctx->id);
-				rule->cookie = 0;
-				id = rule->id;
-				kmem_cache_free(ipa_ctx->rt_rule_cache, rule);
 
-				/* remove the handle from the database */
-				ipa_id_remove(id);
+			list_del(&rule->link);
+			if (rule->hdr) {
+				hdr_entry = ipa_id_find(
+					rule->rule.hdr_hdl);
+				if (!hdr_entry ||
+				hdr_entry->cookie != IPA_HDR_COOKIE) {
+					IPAERR_RL(
+					"Header already deleted\n");
+					return -EINVAL;
+				}
+			} else if (rule->proc_ctx) {
+				hdr_proc_entry =
+					ipa_id_find(
+					rule->rule.hdr_proc_ctx_hdl);
+				if (!hdr_proc_entry ||
+					hdr_proc_entry->cookie !=
+						IPA_PROC_HDR_COOKIE) {
+				IPAERR_RL(
+					"Proc entry already deleted\n");
+					return -EINVAL;
+				}
 			}
+			tbl->rule_cnt--;
+			if (rule->hdr)
+				__ipa_release_hdr(rule->hdr->id);
+			else if (rule->proc_ctx)
+				__ipa_release_hdr_proc_ctx(rule->proc_ctx->id);
+			rule->cookie = 0;
+			id = rule->id;
+			kmem_cache_free(ipa_ctx->rt_rule_cache, rule);
+
+			/* remove the handle from the database */
+			ipa_id_remove(id);
 		}
 
 		if (ipa_id_find(tbl->id) == NULL) {
