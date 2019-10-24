@@ -1840,6 +1840,25 @@ config TEST_UDELAY
 
 	  If unsure, say N.
 
+
+config PANIC_ON_DATA_CORRUPTION
+	bool "Cause a Kernel Panic When Data Corruption is detected"
+	help
+	 Select this option to upgrade warnings for potentially
+	 recoverable data corruption scenarios to system-halting panics,
+	 for easier detection and debug.
+config MEMTEST
+	bool "Memtest"
+	depends on HAVE_MEMBLOCK
+	---help---
+	  This option adds a kernel parameter 'memtest', which allows memtest
+	  to be set.
+	        memtest=0, mean disabled; -- default
+	        memtest=1, mean do 1 test pattern;
+	        ...
+	        memtest=17, mean do 17 test patterns.
+	  If you are unsure how to answer this question, answer N.
+
 config BUG_ON_DATA_CORRUPTION
 	bool "Trigger a BUG when data corruption is detected"
 	select CONFIG_DEBUG_LIST
@@ -1850,15 +1869,6 @@ config BUG_ON_DATA_CORRUPTION
 
 	  If unsure, say N.
 
-config CC_WERROR
-	bool "Treat all compile warnings as errors"
-	default n
-	help
-	 Select this option to set compiler warnings as errors,
-	 to prevent easily-fixable problems from creeping into
-	 the codebase.
-
-	 If unsure, say N.
 
 source "samples/Kconfig"
 
