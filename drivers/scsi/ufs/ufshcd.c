@@ -172,8 +172,6 @@ void ufshcd_update_query_stats(struct ufs_hba *hba,
 }
 #endif
 
-#define UFSHCD_REQ_SENSE_SIZE	18
-
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
 				 UFSHCD_ERROR_MASK)
@@ -1376,7 +1374,7 @@ out:
 }
 
 /* host lock must be held before calling this variant */
-static void __ufshcd_release(struct ufs_hba *hba, bool no_sched)
+static void __ufshcd_release(struct ufs_hba *hba)
 {
 	if (!ufshcd_is_clkgating_allowed(hba))
 		return;
@@ -1386,23 +1384,19 @@ static void __ufshcd_release(struct ufs_hba *hba, bool no_sched)
 	if (hba->clk_gating.active_reqs || hba->clk_gating.is_suspended
 		|| hba->ufshcd_state != UFSHCD_STATE_OPERATIONAL
 		|| hba->lrb_in_use || hba->outstanding_tasks
-		|| hba->active_uic_cmd || hba->uic_async_done
-		|| ufshcd_eh_in_progress(hba) || no_sched)
+		|| hba->active_uic_cmd || hba->uic_async_done)
 		return;
 
 	hba->clk_gating.state = REQ_CLKS_OFF;
-	trace_ufshcd_clk_gating(dev_name(hba->dev), hba->clk_gating.state);
-
 	schedule_delayed_work(&hba->clk_gating.gate_work,
-			      msecs_to_jiffies(hba->clk_gating.delay_ms));
+			msecs_to_jiffies(hba->clk_gating.delay_ms));
 }
-
 void ufshcd_release(struct ufs_hba *hba, bool no_sched)
 {
 	unsigned long flags;
 
 	spin_lock_irqsave(hba->host->host_lock, flags);
-	__ufshcd_release(hba, no_sched);
+	__ufshcd_release(hba);
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 }
 EXPORT_SYMBOL(ufshcd_release);
@@ -2030,7 +2024,7 @@ static inline void ufshcd_copy_sense_data(struct ufshcd_lrb *lrbp)
 
 		memcpy(lrbp->sense_buffer,
 			lrbp->ucd_rsp_ptr->sr.sense_data,
-			min_t(int, len_to_copy, UFSHCD_REQ_SENSE_SIZE));
+			min_t(int, len_to_copy, SCSI_SENSE_BUFFERSIZE));
 	}
 }
 
@@ -2663,7 +2657,7 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 
 	WARN_ON(lrbp->cmd);
 	lrbp->cmd = cmd;
-	lrbp->sense_bufflen = UFSHCD_REQ_SENSE_SIZE;
+	lrbp->sense_bufflen = SCSI_SENSE_BUFFERSIZE;
 	lrbp->sense_buffer = cmd->sense_buffer;
 	lrbp->task_tag = tag;
 	lrbp->lun = ufshcd_scsi_to_upiu_lun(cmd->device->lun);
@@ -5114,7 +5108,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			update_req_stats(hba, lrbp);
 			/* Mark completed command as NULL in LRB */
 			lrbp->cmd = NULL;
-			__ufshcd_release(hba, false);
+			__ufshcd_release(hba);
 			__ufshcd_hibern8_release(hba, false);
 			if (cmd->request) {
 				/*
@@ -7779,19 +7773,19 @@ ufshcd_send_request_sense(struct ufs_hba *hba, struct scsi_device *sdp)
 				0,
 				0,
 				0,
-				UFSHCD_REQ_SENSE_SIZE,
+				SCSI_SENSE_BUFFERSIZE,
 				0};
 	char *buffer;
 	int ret;
 
-	buffer = kzalloc(UFSHCD_REQ_SENSE_SIZE, GFP_KERNEL);
+	buffer = kzalloc(SCSI_SENSE_BUFFERSIZE, GFP_KERNEL);
 	if (!buffer) {
 		ret = -ENOMEM;
 		goto out;
 	}
 
 	ret = scsi_execute_req_flags(sdp, cmd, DMA_FROM_DEVICE, buffer,
-				UFSHCD_REQ_SENSE_SIZE, NULL,
+				SCSI_SENSE_BUFFERSIZE, NULL,
 				msecs_to_jiffies(1000), 3, NULL, REQ_PM);
 	if (ret)
 		pr_err("%s: failed with err %d\n", __func__, ret);
@@ -8335,9 +8329,6 @@ EXPORT_SYMBOL(ufshcd_system_suspend);
 
 int ufshcd_system_resume(struct ufs_hba *hba)
 {
-	int ret = 0;
-	ktime_t start = ktime_get();
-
 	if (!hba)
 		return -EINVAL;
 
@@ -8346,14 +8337,9 @@ int ufshcd_system_resume(struct ufs_hba *hba)
 		 * Let the runtime resume take care of resuming
 		 * if runtime suspended.
 		 */
-		goto out;
-	else
-		ret = ufshcd_resume(hba, UFS_SYSTEM_PM);
-out:
-	trace_ufshcd_system_resume(dev_name(hba->dev), ret,
-		ktime_to_us(ktime_sub(ktime_get(), start)),
-		hba->curr_dev_pwr_mode, hba->uic_link_state);
-	return ret;
+		return 0;
+
+	return ufshcd_resume(hba, UFS_SYSTEM_PM);
 }
 EXPORT_SYMBOL(ufshcd_system_resume);
 
@@ -8367,23 +8353,13 @@ EXPORT_SYMBOL(ufshcd_system_resume);
  */
 int ufshcd_runtime_suspend(struct ufs_hba *hba)
 {
-	int ret = 0;
-	ktime_t start = ktime_get();
-
 	if (!hba)
 		return -EINVAL;
 
 	if (!hba->is_powered)
-		goto out;
-	else
-		ret = ufshcd_suspend(hba, UFS_RUNTIME_PM);
-out:
-	trace_ufshcd_runtime_suspend(dev_name(hba->dev), ret,
-		ktime_to_us(ktime_sub(ktime_get(), start)),
-		hba->curr_dev_pwr_mode,
-		hba->uic_link_state);
-	return ret;
+		return 0;
 
+	return ufshcd_suspend(hba, UFS_RUNTIME_PM);
 }
 EXPORT_SYMBOL(ufshcd_runtime_suspend);
 
@@ -8410,22 +8386,13 @@ EXPORT_SYMBOL(ufshcd_runtime_suspend);
  */
 int ufshcd_runtime_resume(struct ufs_hba *hba)
 {
-	int ret = 0;
-	ktime_t start = ktime_get();
-
 	if (!hba)
 		return -EINVAL;
 
 	if (!hba->is_powered)
-		goto out;
-	else
-		ret = ufshcd_resume(hba, UFS_RUNTIME_PM);
-out:
-	trace_ufshcd_runtime_resume(dev_name(hba->dev), ret,
-		ktime_to_us(ktime_sub(ktime_get(), start)),
-		hba->curr_dev_pwr_mode,
-		hba->uic_link_state);
-	return ret;
+		return 0;
+
+	return ufshcd_resume(hba, UFS_RUNTIME_PM);
 }
 EXPORT_SYMBOL(ufshcd_runtime_resume);
 
@@ -8717,39 +8684,6 @@ out_error:
 EXPORT_SYMBOL(ufshcd_alloc_host);
 
 /**
- * ufshcd_is_devfreq_scaling_required - check if scaling is required or not
- * @hba: per adapter instance
- * @scale_up: True if scaling up and false if scaling down
- *
- * Returns true if scaling is required, false otherwise.
- */
-static bool ufshcd_is_devfreq_scaling_required(struct ufs_hba *hba,
-					       bool scale_up)
-{
-	struct ufs_clk_info *clki;
-	struct list_head *head = &hba->clk_list_head;
-
-	if (!head || list_empty(head))
-		return false;
-
-	list_for_each_entry(clki, head, list) {
-		if (!IS_ERR_OR_NULL(clki->clk)) {
-			if (scale_up && clki->max_freq) {
-				if (clki->curr_freq == clki->max_freq)
-					continue;
-				return true;
-			} else if (!scale_up && clki->min_freq) {
-				if (clki->curr_freq == clki->min_freq)
-					continue;
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-/**
  * ufshcd_scale_gear - scale up/down UFS gear
  * @hba: per adapter instance
  * @scale_up: True for scaling up gear and false for scaling down
@@ -9020,19 +8954,13 @@ static void ufshcd_clk_scaling_resume_work(struct work_struct *work)
 static int ufshcd_devfreq_target(struct device *dev,
 				unsigned long *freq, u32 flags)
 {
-	int ret = 0;
+	int err = 0;
 	struct ufs_hba *hba = dev_get_drvdata(dev);
+	bool release_clk_hold = false;
 	unsigned long irq_flags;
-	ktime_t start;
-	bool scale_up, sched_clk_scaling_suspend_work = false;
 
 	if (!ufshcd_is_clkscaling_supported(hba))
 		return -EINVAL;
-
-	if ((*freq > 0) && (*freq < UINT_MAX)) {
-		dev_err(hba->dev, "%s: invalid freq = %lu\n", __func__, *freq);
-		return -EINVAL;
-	}
 
 	spin_lock_irqsave(hba->host->host_lock, irq_flags);
 	if (ufshcd_eh_in_progress(hba)) {
@@ -9040,29 +8968,36 @@ static int ufshcd_devfreq_target(struct device *dev,
 		return 0;
 	}
 
-	if (!hba->clk_scaling.active_reqs)
-		sched_clk_scaling_suspend_work = true;
-
-	scale_up = (*freq == UINT_MAX) ? true : false;
-	if (!ufshcd_is_devfreq_scaling_required(hba, scale_up)) {
-		spin_unlock_irqrestore(hba->host->host_lock, irq_flags);
-		ret = 0;
-		goto out; /* no state change required */
+	if (ufshcd_is_clkgating_allowed(hba) &&
+	    (hba->clk_gating.state != CLKS_ON)) {
+		if (cancel_delayed_work(&hba->clk_gating.gate_work)) {
+			/* hold the vote until the scaling work is completed */
+			hba->clk_gating.active_reqs++;
+			release_clk_hold = true;
+			hba->clk_gating.state = CLKS_ON;
+		} else {
+			/*
+			 * Clock gating work seems to be running in parallel
+			 * hence skip scaling work to avoid deadlock between
+			 * current scaling work and gating work.
+			 */
+			spin_unlock_irqrestore(hba->host->host_lock, irq_flags);
+			return 0;
+		}
 	}
 	spin_unlock_irqrestore(hba->host->host_lock, irq_flags);
 
-	start = ktime_get();
-	ret = ufshcd_devfreq_scale(hba, scale_up);
-	trace_ufshcd_profile_clk_scaling(dev_name(hba->dev),
-		(scale_up ? "up" : "down"),
-		ktime_to_us(ktime_sub(ktime_get(), start)), ret);
+	if (*freq == UINT_MAX)
+		err = ufshcd_scale_clks(hba, true);
+	else if (*freq == 0)
+		err = ufshcd_scale_clks(hba, false);
 
-out:
-	if (sched_clk_scaling_suspend_work)
-		queue_work(hba->clk_scaling.workq,
-			   &hba->clk_scaling.suspend_work);
+	spin_lock_irqsave(hba->host->host_lock, irq_flags);
+	if (release_clk_hold)
+		__ufshcd_release(hba);
+	spin_unlock_irqrestore(hba->host->host_lock, irq_flags);
 
-	return ret;
+	return err;
 }
 
 static int ufshcd_devfreq_get_dev_status(struct device *dev,
