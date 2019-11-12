@@ -672,7 +672,7 @@ static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
 		 * a skip would have already been reported.
 		 */
 		if (__seccomp_filter(this_syscall, NULL, true))
-			return -EPERM;
+			return -1;
 
 		return 0;
 
@@ -689,7 +689,7 @@ static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
 
 skip:
 	audit_seccomp(this_syscall, 0, action);
-	return -EPERM;
+	return -1;
 }
 #else
 static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
@@ -717,7 +717,6 @@ int __secure_computing(const struct seccomp_data *sd)
 		BUG();
 	}
 }
-
 #endif /* CONFIG_HAVE_ARCH_SECCOMP_FILTER */
 
 long prctl_get_seccomp(void)
