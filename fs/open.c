@@ -370,7 +370,7 @@ retry:
 		 * with the "noexec" flag.
 		 */
 		res = -EACCES;
-		if (path_noexec(&path))
+		if (path.mnt->mnt_flags & MNT_NOEXEC)
 			goto out_path_release;
 	}
 
