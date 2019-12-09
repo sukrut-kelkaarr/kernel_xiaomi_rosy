@@ -762,3 +762,6 @@ CONFIG_NTFS_FS=y
 
 # sdcardfs
 CONFIG_SDCARD_FS=y
+
+# poor hack for sensor_ind wakelock
+CONFIG_PM_WAKELOCKS_SENSOR_IND_HACK=y
