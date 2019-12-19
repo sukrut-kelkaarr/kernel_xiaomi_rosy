@@ -1502,6 +1502,280 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                 }
             }
         }
+        // Processing for each tCsrScanResultInfo in the tCsrScanResult DLink list
+        for (chn_num = 0; chn_num < pSpectInfoParams->numSpectChans; chn_num++) {
+
+            /*
+             *  if the Beacon has channel ID, use it other wise we will 
+             *  rely on the channelIdSelf
+             */
+            if(pScanResult->BssDescriptor.channelId == 0)
+                channel_id = pScanResult->BssDescriptor.channelIdSelf;
+            else
+                channel_id = pScanResult->BssDescriptor.channelId;
+
+            if (pSpectCh && (channel_id == pSpectCh->chNum)) {
+                if (pSpectCh->rssiAgr < pScanResult->BssDescriptor.rssi)
+                    pSpectCh->rssiAgr = pScanResult->BssDescriptor.rssi;
+
+                ++pSpectCh->bssCount; // Increment the count of BSS
+
+                if(operatingBand) // Connsidering the Extension Channel only in a channels
+                {
+                    /* Updating the received ChannelWidth */
+                    if (pSpectCh->channelWidth != channelWidth)
+                        pSpectCh->channelWidth = channelWidth;
+                    /* If received ChannelWidth is other than HT20, we need to update the extension channel Params as well */
+                    /* channelWidth == 0, HT20 */
+                    /* channelWidth == 1, HT40 */
+                    /* channelWidth == 2, VHT80*/
+                    switch(pSpectCh->channelWidth)
+                    {
+                        case eHT_CHANNEL_WIDTH_40MHZ: //HT40
+                            switch( secondaryChannelOffset)
+                            {
+                                tSapSpectChInfo *pExtSpectCh = NULL;
+                                case PHY_DOUBLE_CHANNEL_LOW_PRIMARY: // Above the Primary Channel
+                                    pExtSpectCh = (pSpectCh + 1);
+                                    if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                    {
+                                        ++pExtSpectCh->bssCount;
+                                        rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                        // REducing the rssi by -20 and assigning it to Extension channel
+                                        if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                        {
+                                            pExtSpectCh->rssiAgr = rssi;
+                                        }
+                                        if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                            pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                    }
+                                break;
+
+                                case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY: // Below the Primary channel
+                                    pExtSpectCh = (pSpectCh - 1);
+                                    if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                    {
+                                        rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                        if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                        {
+                                            pExtSpectCh->rssiAgr = rssi;
+                                        }
+                                        if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                            pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                        ++pExtSpectCh->bssCount;
+                                    }
+                                break;
+                            }
+                        break;
+                        case eHT_CHANNEL_WIDTH_80MHZ: // VHT80
+                            if((centerFreq - channel_id) == 6)
+                            {
+                                tSapSpectChInfo *pExtSpectCh = NULL;
+                                pExtSpectCh = (pSpectCh + 1);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi; // Reducing the rssi by -20 and assigning it to Subband 1
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh + 2);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND2_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi; // Reducing the rssi by -30 and assigning it to Subband 2
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh + 3);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND3_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi; // Reducing the rssi by -40 and assigning it to Subband 3
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                            }
+                            else if((centerFreq - channel_id) == 2)
+                            {
+                                tSapSpectChInfo *pExtSpectCh = NULL;
+                                pExtSpectCh = (pSpectCh - 1 );
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh + 1);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh + 2);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND2_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                            }
+                            else if((centerFreq - channel_id) == -2)
+                            {
+                                tSapSpectChInfo *pExtSpectCh = NULL;
+                                pExtSpectCh = (pSpectCh - 1 );
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh - 2);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND2_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh + 1);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                            }
+                            else if((centerFreq - channel_id) == -6)
+                            {
+                                tSapSpectChInfo *pExtSpectCh = NULL;
+                                pExtSpectCh = (pSpectCh - 1 );
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND1_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh - 2);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND2_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                                pExtSpectCh = (pSpectCh - 3);
+                                if( pExtSpectCh != NULL &&
+                                       (pExtSpectCh >= pSpectChStartAddr &&
+                                        pExtSpectCh < pSpectChEndAddr))
+                                {
+                                    ++pExtSpectCh->bssCount;
+                                    rssi = pSpectCh->rssiAgr + SAP_SUBBAND3_RSSI_EFFECT_PRIMARY;
+                                    if (IS_RSSI_VALID(pExtSpectCh->rssiAgr, rssi))
+                                    {
+                                        pExtSpectCh->rssiAgr = rssi;
+                                    }
+                                    if(pExtSpectCh->rssiAgr < SOFTAP_MIN_RSSI)
+                                        pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
+                                }
+                            }
+                        break;
+                    }
+                }
+                else if(operatingBand == eSAP_RF_SUBBAND_2_4_GHZ)
+                {
+                     sapInterferenceRssiCount(pSpectCh, pSpectChStartAddr,
+                                              pSpectChEndAddr);
+                }
+
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanResult=%pK, ChannelWidth %d, secondaryChanOffset %d, center frequency %d ",
+                  __func__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, pSpectCh->bssCount, pScanResult,pSpectCh->channelWidth,secondaryChannelOffset,centerFreq);
+                 pSpectCh++;
+                 break;
+           } else {
+             pSpectCh++;
+           }
+        }
+
+        pScanResult = sme_ScanResultGetNext(halHandle, pResult);
     }
 
     // Calculate the weights for all channels in the spectrum pSpectCh
