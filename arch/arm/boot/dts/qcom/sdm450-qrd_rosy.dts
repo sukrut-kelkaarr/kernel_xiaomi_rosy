@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -17,10 +18,9 @@
 #include "msm8953-qrd-sku3_rosy.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. SDM450 QRD";
+	model = "Qualcomm Technologies, Inc. SDM450 + PMI8940 QRD";
 	compatible = "qcom,sdm450-qrd", "qcom,sdm450", "qcom,qrd";
-	qcom,board-id = <11 1>;
-	
+	qcom,board-id = <0x1000b 1>;
 
 	firmware {
 
@@ -50,5 +50,6 @@
 			};
 		};
 	};
-	
 };
+
+

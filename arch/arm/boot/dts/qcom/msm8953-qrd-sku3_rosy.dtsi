@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,7 +14,7 @@
 
 #include "msm8953-qrd_rosy.dtsi"
 #include "msm8953-pinctrl_rosy.dtsi"
-#include "msm8953-camera-sensor-qrd_rosy.dtsi"
+
 #include "dsi-panel-ft8613-ebbg-5p7-720p-video.dtsi"
 #include "dsi-panel-ft8006m-boe-5p7-720p-video.dtsi"
 #include "dsi-panel-ft8613-ebbg-5p5-1080p-video.dtsi"
@@ -64,7 +65,6 @@
 	qcom,esd-check-enabled;
 };
 
-#include "msm8953-mdss-panels.dtsi"
 &mdss_mdp {
 	qcom,mdss-pref-prim-intf = "dsi";
 };
@@ -82,8 +82,10 @@
 	pinctrl-0 = <&mdss_dsi_active>;
 	pinctrl-1 = <&mdss_dsi_suspend>;
 
+	//qcom,platform-te-gpio = <&tlmm 24 0>;
 	qcom,platform-reset-gpio = <&tlmm 61 0>;
-	iovdd_gpio-supply = <&iovdd_gpio_vreg>;
+	//qcom,platform-bklight-en-gpio = <&tlmm 59 0>;
+	iovdd_gpio-supply = <&iovdd_gpio_vreg>; // bug 293355 - change the LDO6 control by GPIO in the regulator solusion， heming, 20170912
 	lab-supply = <&lab_regulator>;
 	ibb-supply = <&ibb_regulator>;
 };
@@ -97,6 +99,7 @@
 	qpnp,qpnp-labibb-mode = "lcd";
 };
 
+/* bug 293355 - change the LDO6 control by GPIO in the regulator solusion， heming, 20170912, begin*/
 &dsi_panel_pwr_supply {
 	qcom,panel-supply-entry@1 {
 		reg = <1>;
@@ -126,29 +129,30 @@
 		qcom,supply-post-on-sleep = <10>;
 	};
 };
+/* bug 293355 - change the LDO6 control by GPIO in the regulator solusion， heming, 20170912, end*/
 
 &dsi_ft8613_ebbg_5p7_720p_video {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,qpnp-ibb-init-lcd-voltage = <5800000>;
-	qcom,qpnp-lab-init-lcd-voltage = <5800000>;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+        qcom,qpnp-ibb-init-lcd-voltage = <5800000>;
+        qcom,qpnp-lab-init-lcd-voltage = <5800000>;
 };
 
 &dsi_ft8006m_boe_5p7_720p_video {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,qpnp-ibb-init-lcd-voltage = <6000000>;
-	qcom,qpnp-lab-init-lcd-voltage = <6000000>;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+        qcom,qpnp-ibb-init-lcd-voltage = <6000000>;
+        qcom,qpnp-lab-init-lcd-voltage = <6000000>;
 };
 
 &dsi_ft8613_csot_5p7_720p_video {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,qpnp-ibb-init-lcd-voltage = <5800000>;
-	qcom,qpnp-lab-init-lcd-voltage = <5800000>;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+        qcom,qpnp-ibb-init-lcd-voltage = <5800000>;
+        qcom,qpnp-lab-init-lcd-voltage = <5800000>;
 };
 
 &dsi_ft8613_ebbg_5p5_1080p_video {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,qpnp-ibb-init-lcd-voltage = <5800000>;
-	qcom,qpnp-lab-init-lcd-voltage = <5800000>;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+        qcom,qpnp-ibb-init-lcd-voltage = <5800000>;
+        qcom,qpnp-lab-init-lcd-voltage = <5800000>;
 };
 
 &dsi_r69006_1080p_cmd {
@@ -172,14 +176,4 @@
 &pm8953_diangu_analog {
 	status = "okay";
 };
-&wsa881x_i2c_e {
-	status = "disabled";
-};
 
-&wsa881x_i2c_44 {
-	status = "disabled";
-};
-
-&wsa881x_i2c_f {
-	status = "disabled";
-};
