@@ -1,5 +1,5 @@
 /* Copyright (c) 2014-2017, The Linux Foundation. All rights reserved.
- * Copyright (C) 2018 XiaoMi, Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -846,20 +846,18 @@ out:
 	return rc;
 }
 
-
 static int area_version_flag;
-static void get_area_version(struct fg_chip *chip)
-{
+static void get_area_version(struct fg_chip *chip){
 	char *boardid_string = NULL;
 	char boardid_start[32] = " ";
 	int India;
 
 	boardid_string = strstr(saved_command_line, "board_id=");
 
-	if (boardid_string != NULL) {
+	if (boardid_string != NULL){
 		strncpy(boardid_start, boardid_string+9, 9);
 		India = strncmp(boardid_start, "S88567CA1", 9);
-		if (!India) {
+		if (!India){
 			pr_err("India version!\n");
 			area_version_flag = 1;
 		} else{
@@ -868,7 +866,6 @@ static void get_area_version(struct fg_chip *chip)
 		}
 	}
 }
-
 
 #define RIF_MEM_ACCESS_REQ	BIT(7)
 static int fg_check_rif_mem_access(struct fg_chip *chip, bool *status)
@@ -2051,6 +2048,22 @@ static void fg_handle_battery_insertion(struct fg_chip *chip)
 }
 
 
+#if 0
+/*
+ * If set qcom,fg-delta-soc = <1>,and use soc_to_setpoint function to set delta soc,
+ * the true configure of delta_soc is 3(msoc),so the max interrupts is only (255/3).
+ * There will be some chance to show the max change of soc to 2%.
+ *
+ * Then set qcom,fg-delta-soc = <2>,and not use soc_to_setpoint function,
+ * the true configure of delta_soc is 2(msoc),so the max interrupts is (255/2).
+ * There will no chance to show the max change of soc over 1%.
+ */
+static int soc_to_setpoint(int soc)
+{
+	return DIV_ROUND_CLOSEST(soc * 255, 100);
+}
+#endif
+
 static void batt_to_setpoint_adc(int vbatt_mv, u8 *data)
 {
 	int val;
@@ -2278,6 +2291,11 @@ static int get_prop_capacity(struct fg_chip *chip)
 	if (chip->battery_missing)
 		return MISSING_CAPACITY;
 
+
+
+
+
+
 	if (chip->charge_full)
 		return FULL_CAPACITY;
 
@@ -2311,7 +2329,6 @@ static int get_prop_capacity(struct fg_chip *chip)
 		return FULL_CAPACITY;
 	}
 
-
 #if defined(CONFIG_D1_ROSY)
 	if (((chip->health == POWER_SUPPLY_HEALTH_COOL)
 			 || (chip->health == POWER_SUPPLY_HEALTH_COLD))
@@ -2321,7 +2338,6 @@ static int get_prop_capacity(struct fg_chip *chip)
 				FULL_SOC_RAW - 2) + 2;
 	}
 #endif
-
 
 	return DIV_ROUND_CLOSEST((msoc - 1) * (FULL_CAPACITY - 2),
 			FULL_SOC_RAW - 2) + 1;
@@ -3060,8 +3076,7 @@ out:
 
 static int fg_get_cycle_count(struct fg_chip *chip)
 {
-	int count = 0;
-	int i = 0;
+	int count;
 
 	if (!chip->cyc_ctr.en)
 		return 0;
@@ -3070,32 +3085,9 @@ static int fg_get_cycle_count(struct fg_chip *chip)
 		return -EINVAL;
 
 	mutex_lock(&chip->cyc_ctr.lock);
-	for (i = 0; i < BUCKET_COUNT; i++)
-		count += chip->cyc_ctr.count[i];
-	count /= BUCKET_COUNT;
+	count = chip->cyc_ctr.count[chip->cyc_ctr.id - 1];
 	mutex_unlock(&chip->cyc_ctr.lock);
 	return count;
-}
-
-static int fg_set_cycle_count(struct fg_chip *chip, int value)
-{
-	int rc = 0;
-	int i = 0;
-	int address;
-	u8 data[2];
-
-	for (i = 0; i < BUCKET_COUNT; i++) {
-		data[0] = value & 0xFF;
-		data[1] = value >> 8;
-
-		address = BATT_CYCLE_NUMBER_REG + i * 2;
-		rc = fg_mem_write(chip, data, address, 2, BATT_CYCLE_OFFSET, 0);
-		if (rc < 0)
-			pr_err("failed to write BATT_CYCLE[%d] rc=%d\n", i, rc);
-		else
-			chip->cyc_ctr.count[i] = value;
-	}
-	return rc;
 }
 
 static void half_float_to_buffer(int64_t uval, u8 *buffer)
@@ -4088,10 +4080,8 @@ static void status_change_work(struct work_struct *work)
 
 	if (chip->status == POWER_SUPPLY_STATUS_FULL) {
 #if defined(CONFIG_D1_ROSY)
-
 		if (capacity >= 99 && chip->hold_soc_while_full
 				&& (chip->health == POWER_SUPPLY_HEALTH_GOOD || chip->health == POWER_SUPPLY_HEALTH_COOL)) {
-
 #else
 		if (capacity >= 99 && chip->hold_soc_while_full
 				&& chip->health == POWER_SUPPLY_HEALTH_GOOD) {
@@ -4289,14 +4279,14 @@ static void fg_hysteresis_config(struct fg_chip *chip)
 		chip->batt_warm = false;
 		chip->batt_cold = false;
 		chip->batt_cold = false;
-	} else if (chip->health != POWER_SUPPLY_HEALTH_OVERHEAT &&	chip->batt_hot) {
+	}  else if (chip->health != POWER_SUPPLY_HEALTH_OVERHEAT &&	chip->batt_hot) {
 		/* restore the hard hot threshold */
 		set_prop_jeita_temp(chip, FG_MEM_HARD_HOT, hard_hot + chip->hot_hysteresis);
 		chip->batt_hot = false;
 		chip->batt_warm = true;
 		chip->batt_cold = false;
 		chip->batt_cool = false;
-	} else if (chip->health == POWER_SUPPLY_HEALTH_WARM && !chip->batt_warm) {
+	}else if (chip->health == POWER_SUPPLY_HEALTH_WARM && !chip->batt_warm) {
 		/* turn down the soft hot threshold */
 		set_prop_jeita_temp(chip, FG_MEM_SOFT_HOT, soft_hot - WARNTEMP);
 		chip->batt_hot = false;
@@ -4317,21 +4307,21 @@ static void fg_hysteresis_config(struct fg_chip *chip)
 		chip->batt_warm = false;
 		chip->batt_cold = false;
 		chip->batt_cool = true;
-	} else if (chip->health != POWER_SUPPLY_HEALTH_COOL && chip->batt_cool) {
+	}else if (chip->health != POWER_SUPPLY_HEALTH_COOL && chip->batt_cool) {
 		/* restore the soft cold threshold */
 		set_prop_jeita_temp(chip, FG_MEM_SOFT_COLD,	soft_cold - COOLTEMP);
 		chip->batt_cool = false;
 		chip->batt_hot = false;
 		chip->batt_warm = false;
 		chip->batt_cold = false;
-	} else if (chip->health == POWER_SUPPLY_HEALTH_COLD && !chip->batt_cold) {
+	}else if (chip->health == POWER_SUPPLY_HEALTH_COLD && !chip->batt_cold) {
 		/* turn up the hard cold threshold */
 		set_prop_jeita_temp(chip, FG_MEM_HARD_COLD,	hard_cold + chip->cold_hysteresis);
 		chip->batt_hot = false;
 		chip->batt_warm = false;
 		chip->batt_cold = true;
 		chip->batt_cool = false;
-	} else if (chip->health != POWER_SUPPLY_HEALTH_COLD &&
+	}else if (chip->health != POWER_SUPPLY_HEALTH_COLD &&
 		chip->batt_cold) {
 		/* restore the hard cold threshold */
 		set_prop_jeita_temp(chip, FG_MEM_HARD_COLD,	hard_cold - chip->cold_hysteresis);
@@ -4341,6 +4331,7 @@ static void fg_hysteresis_config(struct fg_chip *chip)
 		chip->batt_cool = true;
 	}
 }
+
 
 #define BATT_INFO_STS(base)	(base + 0x09)
 #define JEITA_HARD_HOT_RT_STS	BIT(6)
@@ -4877,10 +4868,6 @@ static int fg_power_set_property(struct power_supply *psy,
 			schedule_work(&chip->set_resume_soc_work);
 		}
 		break;
-	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-		rc = fg_set_cycle_count(chip, val->intval);
-		pr_info("Cycle count is modified to %d by userspace\n", val->intval);
-		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT_ID:
 		if ((val->intval > 0) && (val->intval <= BUCKET_COUNT)) {
 			chip->cyc_ctr.id = val->intval;
@@ -4922,7 +4909,6 @@ static int fg_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CYCLE_COUNT_ID:
 	case POWER_SUPPLY_PROP_BATTERY_INFO:
 	case POWER_SUPPLY_PROP_BATTERY_INFO_ID:
-	case POWER_SUPPLY_PROP_CYCLE_COUNT:
 		return 1;
 	default:
 		break;
@@ -6401,13 +6387,15 @@ fail:
 	return -EINVAL;
 }
 
-
+#if defined(CONFIG_A13N_PMI8952) || defined(CONFIG_D1_ROSY)
 #define REDO_BATID_DURING_FIRST_EST	BIT(4)
 static void fg_hw_restart(struct fg_chip *chip)
 {
 	u8 reg, rc;
 	int batt_id;
 	u8 data[4];
+
+
 
 	reg = 0x80;
 	fg_masked_write(chip, 0x4150, reg, reg, 1);
@@ -6418,7 +6406,7 @@ static void fg_hw_restart(struct fg_chip *chip)
 	fg_masked_write(chip, chip->soc_base + SOC_RESTART, reg, reg, 1);
 	mdelay(5);
 
-	reg = REDO_BATID_DURING_FIRST_EST | REDO_FIRST_ESTIMATE | RESTART_GO;
+	reg = REDO_BATID_DURING_FIRST_EST |REDO_FIRST_ESTIMATE| RESTART_GO;
 	fg_masked_write(chip, chip->soc_base + SOC_RESTART, reg, reg, 1);
 	mdelay(1000);
 
@@ -6437,7 +6425,7 @@ static void fg_hw_restart(struct fg_chip *chip)
 	batt_id = get_sram_prop_now(chip, FG_DATA_BATT_ID);
 	pr_err("fg_hw_restart. wingtech after restart battery id = %d\n", batt_id);
 }
-
+#endif
 
 #define FG_PROFILE_LEN			128
 #define PROFILE_COMPARE_LEN		32
@@ -6475,17 +6463,16 @@ wait:
 	if (!is_charger_available(chip))
 		goto reschedule;
 
-
 	value = get_sram_prop_now(chip, FG_DATA_BATT_ID);
 	pr_err("wingtech init FG_DATA_BATT_ID =%d\n", value);
 #if defined(CONFIG_A13N_PMI8952)
-	if (!(((value > 85000) && (value < 115000)) || ((value > 57000) && (value < 78000)) || ((value > 24000) && (value < 35000)))) {
-
+	if (!(((value > 85000) && (value < 115000)) || ((value > 57000) && (value < 78000)) || ((value > 24000) && (value < 35000))))
+	{
 		fg_hw_restart(chip);
 	}
-
 #elif defined(CONFIG_D1_ROSY)
-	if (!(((value > 57000) && (value < 78000)) || ((value > 280000) && (value < 380000)))) {
+	if (!(((value > 57000) && (value < 78000)) || ((value > 280000) && (value < 380000))))
+	{
 		fg_hw_restart(chip);
 	}
 #endif
@@ -6902,13 +6889,11 @@ static void charge_full_work(struct work_struct *work)
 	}
 	fg_mem_release(chip);
 
-
-	while (msoc != 0xFF && retry != 8) {
+	while(msoc != 0xFF && retry != 8) {
 		msleep(200);
 		msoc = get_monotonic_soc_raw(chip);
 		retry++;
 	}
-
 
 	/*
 	 * wait one cycle to make sure the soc is updated before clearing
@@ -8223,6 +8208,7 @@ static int fg_common_hw_init(struct fg_chip *chip)
 	rc = fg_mem_masked_write(chip, settings[FG_MEM_DELTA_SOC].address, 0xFF,
 			settings[FG_MEM_DELTA_SOC].value,
 			settings[FG_MEM_DELTA_SOC].offset);
+
 	if (rc) {
 		pr_err("failed to write delta soc rc=%d\n", rc);
 		return rc;
@@ -9386,4 +9372,3 @@ module_exit(fg_exit);
 MODULE_DESCRIPTION("QPNP Fuel Gauge Driver");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:" QPNP_FG_DEV_NAME);
-

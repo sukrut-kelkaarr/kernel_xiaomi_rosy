@@ -1,4 +1,5 @@
-/* Copyright (c) 2013-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -54,6 +55,7 @@ static bool scm_deassert_ps_hold_supported;
 static void __iomem *msm_ps_hold;
 static phys_addr_t tcsr_boot_misc_detect;
 static void scm_disable_sdi(void);
+
 
 #if defined(WT_FINAL_RELEASE)
 static int download_mode;
@@ -156,7 +158,7 @@ static bool get_dload_mode(void)
 
 static void enable_emergency_dload_mode(void)
 {
-#ifdef	WT_COMPILE_FACTORY_VERSION
+#if 0
 	int ret;
 
 	if (emergency_dload_mode_addr) {
@@ -178,9 +180,9 @@ static void enable_emergency_dload_mode(void)
 	ret = scm_set_dload_mode(SCM_EDLOAD_MODE, 0);
 	if (ret)
 		pr_err("Failed to set secure EDLOAD mode: %d\n", ret);
-#else
-	pr_err("Failed to set secure EDLOAD mode: Xiaomi Required\n");
 #endif
+	pr_err("Failed to set secure EDLOAD mode: Xiaomi Required\n");
+
 }
 
 static int dload_set(const char *val, struct kernel_param *kp)
@@ -222,7 +224,6 @@ static bool get_dload_mode(void)
 
 static void scm_disable_sdi(void)
 {
-#ifdef WT_FINAL_RELEASE
 	int ret;
 	struct scm_desc desc = {
 		.args[0] = 1,
@@ -239,7 +240,6 @@ static void scm_disable_sdi(void)
 			  SCM_WDOG_DEBUG_BOOT_PART), &desc);
 	if (ret)
 		pr_err("Failed to disable secure wdog debug: %d\n", ret);
-#endif
 }
 
 void msm_set_restart_mode(int mode)
@@ -271,17 +271,6 @@ static void halt_spmi_pmic_arbiter(void)
 				  SCM_IO_DISABLE_PMIC_ARBITER), &desc);
 	}
 }
-
-static bool device_locked_flag;
-static int __init device_locked(char *str)
-{
-	if (strcmp(str, "1"))
-		device_locked_flag = false;
-	else
-		device_locked_flag = true;
-	return 1;
-}
-__setup("device_locked=", device_locked);
 
 static void msm_restart_prepare(const char *cmd)
 {
@@ -346,8 +335,6 @@ static void msm_restart_prepare(const char *cmd)
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_KEYS_CLEAR);
 			__raw_writel(0x7766550a, restart_reason);
-		} else if (!strncmp(cmd, "fastmmi", 7)) {
-			       __raw_writel(0x77665505, restart_reason);
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
 			int ret;
@@ -355,13 +342,8 @@ static void msm_restart_prepare(const char *cmd)
 			if (!ret)
 				__raw_writel(0x6f656d00 | (code & 0xff),
 					     restart_reason);
-#ifdef WT_COMPILE_FACTORY_VERSION
 		} else if (!strncmp(cmd, "edl", 3)) {
-				enable_emergency_dload_mode();
-#else
-		} else if (!strncmp(cmd, "edl", 3) && !device_locked_flag) {
-				enable_emergency_dload_mode();
-#endif
+			enable_emergency_dload_mode();
 		} else {
 			qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
 			__raw_writel(0x77665501, restart_reason);
@@ -651,4 +633,3 @@ static int __init msm_restart_init(void)
 	return platform_driver_register(&msm_restart_driver);
 }
 device_initcall(msm_restart_init);
-
