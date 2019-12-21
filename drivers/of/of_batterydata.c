@@ -1,5 +1,5 @@
 /* Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
- * Copyright (C) 2018 XiaoMi, Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -312,17 +312,10 @@ static int64_t of_batterydata_convert_battery_id_kohm(int batt_id_uv,
 	return resistor_value_kohm;
 }
 
-
-#ifdef CONFIG_C3N_SMB358
-extern int battid_resister;
-#endif
-
 int battery_type_id = 0 ;
-
 #if defined(CONFIG_A13N_PMI8952) || defined(CONFIG_D1_ROSY)
 static char *default_batt_type = "Generic_Battery";
 #endif
-
 struct device_node *of_batterydata_get_best_profile(
 		const struct device_node *batterydata_container_node,
 		const char *psy_name,  const char  *batt_type)
@@ -406,9 +399,7 @@ struct device_node *of_batterydata_get_best_profile(
 			}
 		}
 	}
-
 #if defined(CONFIG_A13N_PMI8952) || defined(CONFIG_D1_ROSY)
-
 	if (best_node == NULL) {
 		for_each_child_of_node(batterydata_container_node, node) {
 				if (default_batt_type != NULL) {
@@ -424,7 +415,6 @@ struct device_node *of_batterydata_get_best_profile(
 				}
 			}
 	}
-
 #endif
 
 	if (best_node == NULL) {
@@ -442,23 +432,13 @@ struct device_node *of_batterydata_get_best_profile(
 
 	rc = of_property_read_string(best_node, "qcom,battery-type",
 							&battery_type);
-	if (!rc) {
+	if (!rc)
+	{
 		hardwareinfo_set_prop(HARDWARE_BATTERY_ID, battery_type);
 		pr_info("%s found\n", battery_type);
 	}
 	else
 		pr_info("%s found\n", best_node->name);
-
-#ifdef CONFIG_C3N_SMB358
-
-	if (strcmp(battery_type, "wingtech-feimaotui-4v4-3030mah") == 0) {
-			 battery_type_id = 1;
-	} else if (strcmp(battery_type, "wingtech-xingwangda-4v4-3030mah") == 0) {
-			 battery_type_id = 2;
-	}
-
-#endif
-
 
 	return best_node;
 }

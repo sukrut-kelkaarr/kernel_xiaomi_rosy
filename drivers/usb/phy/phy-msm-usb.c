@@ -2903,7 +2903,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 							IDEV_CHG_MAX);
 					/* fall through */
 				case USB_SDP_CHARGER:
-
 					if (oem_is_kpoc) {
 						motg->chg_type = USB_DCP_CHARGER;
 						msm_otg_notify_charger(motg, 500);
@@ -2913,7 +2912,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 						pm_runtime_suspend(otg->phy->dev);
 						break;
 					}
-
 					msm_otg_notify_charger(motg, IDEV_CHG_MIN);
 					pm_runtime_get_sync(otg->phy->dev);
 					msm_otg_start_peripheral(otg, 1);
